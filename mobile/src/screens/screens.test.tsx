@@ -27,7 +27,7 @@ describe('MVP screens', () => {
     expect(view.getByText('A luxury penthouse evening at Sunset Social.')).toBeTruthy();
     expect(view.getByText('The Tasting Room')).toBeTruthy();
     expect(view.getByText('Jan 2027 · 21+')).toBeTruthy();
-    expect(view.getByText('Sat, Jan 23, 2027 · Time TBA · Venue to be announced')).toBeTruthy();
+    expect(view.getByText('Sat, Jan 23, 2027 · 5:00 to 8:00 PM ET · Venue to be announced')).toBeTruthy();
     expect(view.getByText('SAMPLE GUESTS')).toBeTruthy();
     await userEvent.press(view.getByTestId('discover-reserve'));
     expect(router.push).toHaveBeenCalledWith('/checkout/sunset-social');
@@ -36,7 +36,7 @@ describe('MVP screens', () => {
   it('renders the event page with a sticky reserve and no public address', async () => {
     const view = await renderScreen(<EventScreen />);
     expect(await view.findByText('Saturday, January 23, 2027')).toBeTruthy();
-    expect(view.getByText(/Time TBA/)).toBeTruthy();
+    expect(view.getByText(/5:00 to 8:00 PM ET/)).toBeTruthy();
     expect(view.getByText('Rooftop venue to be announced')).toBeTruthy();
     expect(view.getByText('Andrew Lowery')).toBeTruthy();
     expect(view.getByTestId('reserve-your-place')).toBeTruthy();

@@ -59,8 +59,8 @@ await db.exec(`
     ticket_index, ticket_count, sample, event_name, edition, tier_name, doors_label,
     date_month, date_day, date_year, date_weekday, date_time, event_timing
   ) values
-    ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'sunset-social', 'golden-hour', '${ada}', 'Ada', 'SS-ADA', 'valid', 1, 1, false, 'Sunset Social', '01', 'Golden Hour', 'Golden hour', 'JAN', '23', '2027', 'Saturday', 'Time TBA', 'upcoming'),
-    ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'sunset-social', 'golden-hour', '${bea}', 'Bea', 'SS-BEA', 'valid', 1, 1, false, 'Sunset Social', '01', 'Golden Hour', 'Golden hour', 'JAN', '23', '2027', 'Saturday', 'Time TBA', 'upcoming');
+    ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'sunset-social', 'golden-hour', '${ada}', 'Ada', 'SS-ADA', 'valid', 1, 1, false, 'Sunset Social', '01', 'Golden Hour', 'Golden hour', 'JAN', '23', '2027', 'Saturday', '5:00 to 8:00 PM ET', 'upcoming'),
+    ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'sunset-social', 'golden-hour', '${bea}', 'Bea', 'SS-BEA', 'valid', 1, 1, false, 'Sunset Social', '01', 'Golden Hour', 'Golden hour', 'JAN', '23', '2027', 'Saturday', '5:00 to 8:00 PM ET', 'upcoming');
   insert into public.profile_visibility (profile_id, event_id, show_on_wall)
   values ('${ada}', 'sunset-social', true), ('${bea}', 'sunset-social', true);
 `);

@@ -95,7 +95,7 @@ describe('copy guardrails', () => {
       tagline: 'A premium recurring penthouse social experience at golden hour.',
       date_label: 'Sat, Jan 23, 2027',
       long_date_label: 'Saturday, January 23, 2027',
-      time_label: 'Time TBA',
+      time_label: '5:00 to 8:00 PM ET',
       price_from_cents: 3500,
       hero: 'toast',
       status: 'on_sale',
@@ -143,7 +143,7 @@ describe('copy guardrails', () => {
       date_day: '23',
       date_year: '2027',
       date_weekday: 'Saturday',
-      date_time: 'Time TBA',
+      date_time: '5:00 to 8:00 PM ET',
     });
     expect(ticket.date?.day).toBe('23');
     expect(ticket.venueLabel).toBe('Revealed to ticket holders');
