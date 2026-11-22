@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { useEffect, useRef } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { GoldTicket } from '@/screens/WalletScreen';
@@ -9,6 +10,15 @@ import { colors, fonts } from '@/theme/tokens';
 export function TicketRevealScreen() {
   const router = useRouter();
   const ticket = useSessionStore((state) => state.confirmedTicket);
+  const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (leaveTimer.current) {
+        clearTimeout(leaveTimer.current);
+      }
+    };
+  }, []);
 
   if (!ticket) {
     return (
@@ -29,7 +39,16 @@ export function TicketRevealScreen() {
             <Text style={styles.sub}>See you at golden hour.</Text>
           </View>
         }
-        onDone={() => router.replace('/tickets')}
+        onDone={() => {
+          if (leaveTimer.current) {
+            return;
+          }
+          const handle = setTimeout(() => router.replace('/tickets'), 1800);
+          leaveTimer.current = handle;
+          if (typeof handle === 'object' && handle && 'unref' in handle) {
+            handle.unref();
+          }
+        }}
       />
     </View>
   );

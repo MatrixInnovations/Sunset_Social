@@ -53,6 +53,7 @@ export function CheckoutScreen() {
       });
     },
     onSuccess: async (order) => {
+      attempt.current = null;
       await client.invalidateQueries({ queryKey: ['wallet'] });
       await client.invalidateQueries({ queryKey: ['stats'] });
       const ticket = order.tickets[0];

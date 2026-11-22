@@ -158,6 +158,23 @@ describe('MVP screens', () => {
     expect(navigateToTab).toHaveBeenCalledWith('tickets');
   });
 
+  it('starts a new demo attempt after Pay and opens the golden ticket', async () => {
+    const services = createSampleServices();
+    const keys: string[] = [];
+    const place = services.checkout.place.bind(services.checkout);
+    services.checkout.place = (input) => {
+      keys.push(input.idempotencyKey ?? '');
+      return place(input);
+    };
+    const checkout = await renderScreen(<CheckoutScreen />, services);
+    await userEvent.press(await checkout.findByTestId('apple-pay'));
+    expect(router.push).toHaveBeenCalledWith('/ticket-reveal');
+    expect(useSessionStore.getState().confirmedTicket?.code.startsWith('SAMPLE-')).toBe(true);
+    await userEvent.press(checkout.getByTestId('apple-pay'));
+    expect(keys).toHaveLength(2);
+    expect(keys[0]).not.toBe(keys[1]);
+  });
+
   it('pays in demo mode and toggles the profile', async () => {
     const checkout = await renderScreen(<CheckoutScreen />);
     expect((await checkout.findAllByText('$70.00')).length).toBeGreaterThan(0);

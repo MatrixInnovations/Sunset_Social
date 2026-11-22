@@ -67,22 +67,15 @@ Deno.serve(async (req) => {
       return json({ ok: true, ignored: 'refund' });
     }
     const full = decision === 'full';
-    await admin.from('refund_markers').upsert({
-      payment_ref: paymentRef,
-      amount_refunded: charge.amount_refunded,
-      full_refund: full,
+    const { data: recorded, error: recordError } = await admin.rpc('record_refund', {
+      p_intent_id: paymentRef,
+      p_amount: charge.amount_refunded,
+      p_full: full,
     });
-    const { data: order } = await admin.from('orders').select('id').eq('payment_ref', paymentRef).maybeSingle();
-    if (!order) {
-      return json({ ok: true, marked: true, refunded: full });
+    if (recordError) {
+      return json({ error: recordError.message }, 500);
     }
-    if (full) {
-      await admin.from('orders').update({ status: 'refunded' }).eq('id', order.id);
-      await admin.from('tickets').update({ status: 'refunded' }).eq('order_id', order.id).in('status', ['valid', 'checked_in']);
-      return json({ ok: true, refunded: true });
-    }
-    await admin.from('orders').update({ status: 'review' }).eq('id', order.id);
-    return json({ ok: true, review: 'partial_refund' });
+    return json({ ok: true, ...(recorded ?? {}), refunded: full });
   }
 
   const intent = event.data.object as Stripe.PaymentIntent;
@@ -91,11 +84,7 @@ Deno.serve(async (req) => {
     return json({ ok: true, ignored: decision.reason });
   }
 
-  const { data: marker } = await admin.from('refund_markers').select('full_refund').eq('payment_ref', intent.id).maybeSingle();
   let outcome: 'paid' | 'review' | 'refunded' = decision.kind === 'review' ? 'review' : 'paid';
-  if (marker) {
-    outcome = marker.full_refund ? 'refunded' : 'review';
-  }
   if (outcome === 'paid') {
     try {
       const fresh = await stripe.paymentIntents.retrieve(intent.id, { expand: ['latest_charge'] });
@@ -139,12 +128,8 @@ Deno.serve(async (req) => {
     return json({ error: error.message }, 500);
   }
   const result = (data ?? {}) as IssueResult;
-  if (result.reason === 'capacity' || result.reason === 'tier_capacity') {
-    try {
-      await stripe.refunds.create({ payment_intent: intent.id });
-    } catch {
-      // The order is already marked review and has no tickets. Stripe must not retry.
-    }
+  if (result.reason === 'capacity' || result.reason === 'tier_capacity' || result.reason === 'missing_profile') {
+    await refundFlagged(stripe, admin, intent.id, result.order_id, result.reason);
     return json({ ok: true, review: result.reason });
   }
   if (decision.kind === 'review' || result.review) {
@@ -152,6 +137,26 @@ Deno.serve(async (req) => {
   }
   return json({ ok: true, duplicate: result.duplicate === true, order_id: result.order_id });
 });
+
+async function refundFlagged(
+  stripe: Stripe,
+  admin: ReturnType<typeof createClient>,
+  intentId: string,
+  orderId: string | undefined,
+  reason: string,
+): Promise<void> {
+  try {
+    await stripe.refunds.create({ payment_intent: intentId }, { idempotencyKey: `refund_${intentId}` });
+    if (orderId) {
+      await admin.from('orders').update({ review_note: `refunded:${reason}` }).eq('id', orderId);
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'refund failed';
+    if (orderId) {
+      await admin.from('orders').update({ review_note: `refund_failed:${reason}:${message.slice(0, 180)}` }).eq('id', orderId);
+    }
+  }
+}
 
 function toIntentView(intent: Stripe.PaymentIntent): IntentView {
   return {

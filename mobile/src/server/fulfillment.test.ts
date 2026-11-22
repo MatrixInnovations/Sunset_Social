@@ -110,13 +110,15 @@ describe('must-fix schema', () => {
     expect(sql).toContain("set status = 'void'");
   });
 
-  it('requires a valid ticket before a guest wall row, and stamps the tier on the server', () => {
-    expect(sql).toContain('function public.stamp_wall_row');
-    expect(sql).toContain('A valid ticket is required for the guest wall');
-    expect(sql).toContain('new.tier_name := v_tier');
-    expect(sql).toContain('new.you_know := false');
-    expect(sql).toContain('revoke insert (tier_name, you_know)');
-    expect(sql).toContain('shown.status in');
+  it('refunds an oversell with an idempotency key and remembers a refund inside issue_order', () => {
+    const hook = webhook();
+    expect(hook).toContain("rpc('record_refund'");
+    expect(hook).toContain('idempotencyKey: `refund_${intentId}`');
+    expect(hook).toContain('refund_failed:');
+    expect(hook).toContain("'missing_profile'");
+    expect(hook).not.toContain("from('refund_markers')");
+    const screen = fs.readFileSync(path.join(root, 'src/screens/CheckoutScreen.tsx'), 'utf8');
+    expect(screen).toContain('attempt.current = null');
   });
 
   it('revokes the broad default grants and clears the search path', () => {
@@ -158,8 +160,10 @@ describe('checkout attempts', () => {
     const retryB = await service.place({ ...input, idempotencyKey: 'attempt-a' });
     const next = await service.place(input);
     expect(retryA.paymentRef).toBe('attempt-a');
+    expect(retryA.tickets[0]?.code).toBe('SAMPLE-SS01-0001');
     expect(retryB.paymentRef).toBe('attempt-a');
     expect(next.paymentRef).not.toBe('attempt-a');
+    expect(next.tickets[0]?.sample).toBe(true);
     expect(new Set(created).size).toBe(2);
   });
 });

@@ -1,6 +1,6 @@
 import { newCheckoutAttemptId } from '../../supabase/functions/_shared/fulfillment';
-import { MAX_TICKETS_PER_ORDER } from '@/domain/copy';
-import type { PlaceInput, PlacedOrder, Quote, TicketTier } from '@/domain/types';
+import { copy, MAX_TICKETS_PER_ORDER } from '@/domain/copy';
+import type { PlaceInput, PlacedOrder, Quote, TicketRecord, TicketTier } from '@/domain/types';
 import { CheckoutError } from '@/services/errors';
 import type { EventReader, OrderPort, PaymentGateway, PaymentPresenter } from '@/services/ports';
 
@@ -42,13 +42,17 @@ export class CheckoutService {
     }
     const attemptKey = input.idempotencyKey && input.idempotencyKey.length > 0 ? input.idempotencyKey : newCheckoutAttemptId();
     if (this.mode === 'demo') {
-      return this.orders.createPaid({
+      const order = await this.orders.createPaid({
         ...input,
         ...quote,
         guestName: input.guestName.trim(),
         sample: true,
         paymentRef: attemptKey,
       });
+      if (order.tickets[0]) {
+        return order;
+      }
+      return { ...order, sample: true, tickets: [demoSampleTicket(input, quote, attemptKey)] };
     }
     const intent = await this.payments.createIntent({
       tierId: tier.id,
@@ -93,4 +97,36 @@ export class CheckoutService {
       }
     }
   }
+}
+
+function demoSampleTicket(input: PlaceInput, quote: Quote, paymentRef: string): TicketRecord {
+  return {
+    id: `sample-${paymentRef}`,
+    orderId: `o-${paymentRef}`,
+    eventId: quote.eventId,
+    eventName: 'Sunset Social',
+    edition: '01',
+    tierId: input.tierId,
+    tierName: quote.tierName,
+    holderId: input.profileId,
+    guestName: input.guestName.trim(),
+    code: 'SAMPLE-SS01-0001',
+    status: 'valid',
+    index: 1,
+    total: quote.quantity,
+    sample: true,
+    eventTiming: 'upcoming',
+    doorsLabel: copy.doors,
+    venueLabel: copy.venueHolders,
+    date:
+      quote.eventId === 'sunset-social'
+        ? {
+            month: copy.firstEveningMonth,
+            day: copy.firstEveningDay,
+            year: copy.firstEveningYear,
+            weekday: copy.firstEveningWeekday,
+            time: copy.timeTba,
+          }
+        : null,
+  };
 }

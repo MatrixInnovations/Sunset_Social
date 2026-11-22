@@ -60,9 +60,13 @@ Never put the Stripe secret or the service role key in the app.
 
 ## Database
 
-SQL lives in `supabase/migrations/20261122120000_sunset_social_mvp.sql`. It creates events, ticket tiers, guest profiles, orders, tickets, check-ins, holder-only venue reveals, the guest wall, waves, staff roles, and push tokens. Row level security is on every table. Orders and tickets are inserted by the service role (the webhook), not by the phone.
+Apply the schema in this order. `supabase db push` runs the files in filename order when the CLI is logged into the Sunset Social project. A dry run is the same three files, in this order:
 
-The migration seeds the two evenings and the three tiers. Golden Hour is $35 and purchasable, with a max of 8 per order. The Tasting Flight and Velvet Lounge stay TBD. Reveal rows are empty on purpose.
+1. `supabase/migrations/20261122120000_sunset_social_mvp.sql` — events, tiers, profiles, orders, tickets, check-ins, holder-only venue reveals, the guest wall, waves, staff roles, and push tokens. Row level security is on every table. The two evenings and the three tiers are seeded. Golden Hour is $35 and purchasable, with a max of 8 per order. The Tasting Flight and Velvet Lounge stay TBD. Reveal rows are empty on purpose.
+2. `supabase/migrations/20261122140000_fulfillment_guards.sql` — `issue_order` writes the order and its tickets in one transaction, locks capacity, and lets an account delete succeed when orders or waves exist.
+3. `supabase/migrations/20261122160000_wall_rls.sql` — `private.holds_valid_ticket(profile_id uuid, event_id text)` is security definer with an empty search path. `events.id` is text, so the event argument is text. The function is not in `public`, so it is not an RPC. Both guest-wall read policies call it, which is what lets two ticket holders see each other. A refunded guest can still set `show_on_wall` to false. A payment that confirms after the account is gone becomes a profile-less review order. Future tables, sequences, and functions in `public` do not receive the default anon and authenticated grants.
+
+Do not edit the first two files. Orders and tickets are inserted by the service role (the webhook), not by the phone. Stripe stays in test mode: the app refuses `pk_live_` and the functions refuse anything other than `sk_test_`.
 
 From a machine logged into the Sunset Social Supabase project:
 
