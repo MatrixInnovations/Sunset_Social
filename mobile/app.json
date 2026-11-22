@@ -1,0 +1,69 @@
+{
+  "expo": {
+    "name": "Sunset Social",
+    "slug": "sunset-social",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "sunsetsocial",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.thesoftwaredoctor.sunsetsocial",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Sunset Social uses the camera so door staff can scan golden tickets.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.thesoftwaredoctor.sunsetsocial",
+      "adaptiveIcon": {
+        "backgroundColor": "#0b0a0c",
+        "foregroundImage": "./assets/images/android-icon-foreground.png"
+      },
+      "permissions": ["android.permission.CAMERA"]
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/favicon.png",
+      "bundler": "metro",
+      "name": "Sunset Social",
+      "backgroundColor": "#0b0a0c",
+      "themeColor": "#0b0a0c"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0b0a0c",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 180
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Sunset Social uses the camera so door staff can scan golden tickets.",
+          "recordAudioAndroid": false
+        }
+      ],
+      "expo-notifications",
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.thesoftwaredoctor.sunsetsocial",
+          "enableGooglePay": true
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": false,
+      "reactCompiler": false
+    },
+    "extra": {
+      "dataProvider": "sample"
+    }
+  }
+}

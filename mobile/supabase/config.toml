@@ -1,0 +1,13 @@
+project_id = "sunset-social"
+
+[functions.create-payment-intent]
+verify_jwt = true
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.check-in]
+verify_jwt = true
+
+[functions.delete-account]
+verify_jwt = true
