@@ -1,6 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import Stripe from 'npm:stripe@17';
 
+import { exceedsCapacity } from '../_shared/fulfillment.ts';
 import { json, requireTestKey } from '../_shared/http.ts';
 
 const MAX_TICKETS = 8;
@@ -32,7 +33,7 @@ Deno.serve(async (req) => {
   const body = await req.json().catch(() => ({}));
   const quantity = Number(body.quantity);
   const tierId = String(body.tierId ?? '');
-  const idempotencyKey = typeof body.idempotencyKey === 'string' ? body.idempotencyKey : undefined;
+  const idempotencyKey = typeof body.idempotencyKey === 'string' && body.idempotencyKey.length > 0 ? body.idempotencyKey : undefined;
   if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_TICKETS) {
     return json({ error: 'Quantity must be from 1 to 8.' }, 400);
   }
@@ -40,7 +41,7 @@ Deno.serve(async (req) => {
   const admin = createClient(supabaseUrl, serviceKey);
   const { data: tier, error } = await admin
     .from('ticket_tiers')
-    .select('id, event_id, name, price_cents, max_per_order, purchasable')
+    .select('id, event_id, name, price_cents, capacity, max_per_order, purchasable')
     .eq('id', tierId)
     .maybeSingle();
   if (error || !tier || !tier.purchasable || tier.price_cents == null) {
@@ -50,30 +51,60 @@ Deno.serve(async (req) => {
     return json({ error: 'Above the per-order limit.' }, 400);
   }
 
+  const { data: evening, error: eventError } = await admin
+    .from('events')
+    .select('capacity')
+    .eq('id', tier.event_id)
+    .maybeSingle();
+  if (eventError || !evening) {
+    return json({ error: 'That evening is not on sale.' }, 400);
+  }
+  const { count: eventSold, error: eventCountError } = await admin
+    .from('tickets')
+    .select('id', { count: 'exact', head: true })
+    .eq('event_id', tier.event_id)
+    .in('status', ['valid', 'checked_in']);
+  const { count: tierSold, error: tierCountError } = await admin
+    .from('tickets')
+    .select('id', { count: 'exact', head: true })
+    .eq('tier_id', tier.id)
+    .in('status', ['valid', 'checked_in']);
+  if (eventCountError || tierCountError) {
+    return json({ error: 'Could not check remaining places.' }, 502);
+  }
+  if (exceedsCapacity(eventSold ?? 0, evening.capacity, quantity) || exceedsCapacity(tierSold ?? 0, tier.capacity, quantity)) {
+    return json({ error: 'That evening does not have enough places left.' }, 409);
+  }
+
   const amount = tier.price_cents * quantity;
   const stripe = new Stripe(secret);
-  const intent = await stripe.paymentIntents.create(
-    {
+  try {
+    const intent = await stripe.paymentIntents.create(
+      {
+        amount,
+        currency: 'usd',
+        automatic_payment_methods: { enabled: true },
+        description: `Sunset Social · ${tier.name} × ${quantity}`,
+        metadata: {
+          event_id: tier.event_id,
+          tier_id: tier.id,
+          quantity: String(quantity),
+          unit_price_cents: String(tier.price_cents),
+          user_id: userData.user.id,
+          app: 'sunset-social',
+          mode: 'test',
+        },
+      },
+      idempotencyKey ? { idempotencyKey } : undefined,
+    );
+    return json({
+      clientSecret: intent.client_secret,
+      paymentIntentId: intent.id,
       amount,
       currency: 'usd',
-      automatic_payment_methods: { enabled: true },
-      description: `Sunset Social · ${tier.name} × ${quantity}`,
-      metadata: {
-        event_id: tier.event_id,
-        tier_id: tier.id,
-        quantity: String(quantity),
-        user_id: userData.user.id,
-        app: 'sunset-social',
-        mode: 'test',
-      },
-    },
-    idempotencyKey ? { idempotencyKey } : undefined,
-  );
-
-  return json({
-    clientSecret: intent.client_secret,
-    paymentIntentId: intent.id,
-    amount,
-    currency: 'usd',
-  });
+    });
+  } catch (stripeError) {
+    const message = stripeError instanceof Error ? stripeError.message : 'Stripe could not start the payment.';
+    return json({ error: message }, 502);
+  }
 });

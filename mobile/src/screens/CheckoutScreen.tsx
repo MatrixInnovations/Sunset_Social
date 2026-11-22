@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -13,6 +13,7 @@ import type { AppServices } from '@/bootstrap/createSampleServices';
 import { copy, sampleLabels } from '@/domain/copy';
 import { formatMoney } from '@/domain/format';
 import type { Quote, TicketTier } from '@/domain/types';
+import { newCheckoutAttemptId } from '../../supabase/functions/_shared/fulfillment';
 import { CheckoutError } from '@/services/errors';
 import { useSessionStore } from '@/store/session';
 import { colors, fonts } from '@/theme/tokens';
@@ -26,6 +27,7 @@ export function CheckoutScreen() {
   const client = useQueryClient();
   const [quantity, setQuantity] = useState(2);
   const [note, setNote] = useState<string | null>(null);
+  const attempt = useRef<{ key: string; tierId: string; quantity: number } | null>(null);
   const eventQuery = useQuery({ queryKey: ['event', eventId], queryFn: () => services.events.get(eventId) });
   const tierQuery = useQuery({ queryKey: ['tiers', eventId], queryFn: () => services.events.tiers(eventId) });
   const selected = tierQuery.data?.find((tier) => tier.purchasable) ?? null;
@@ -39,11 +41,15 @@ export function CheckoutScreen() {
         throw new CheckoutError('That tier is not on sale yet.', 'tier');
       }
       const profile = await services.guests.profile(services.guests.viewer().id);
+      const sameAttempt = attempt.current?.tierId === selected.id && attempt.current.quantity === quantity;
+      const idempotencyKey = sameAttempt && attempt.current ? attempt.current.key : newCheckoutAttemptId();
+      attempt.current = { key: idempotencyKey, tierId: selected.id, quantity };
       return services.checkout.place({
         tierId: selected.id,
         quantity,
         profileId: profile.id,
         guestName: profile.displayName,
+        idempotencyKey,
       });
     },
     onSuccess: async (order) => {

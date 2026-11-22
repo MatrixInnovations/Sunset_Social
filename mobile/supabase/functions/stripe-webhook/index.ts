@@ -1,23 +1,22 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import Stripe from 'npm:stripe@17';
 
-import { json, requireTestKey, ticketCode } from '../_shared/http.ts';
+import { decideRefund, decideSucceeded, type IntentView } from '../_shared/fulfillment.ts';
+import { json, requireTestKey } from '../_shared/http.ts';
 
-type TierRow = {
-  id: string;
-  event_id: string;
-  name: string;
-  price_cents: number;
-};
-
-type EventRow = {
-  name: string;
-  edition: string;
-  long_date_label: string | null;
-  time_label: string | null;
+type IssueResult = {
+  ok?: boolean;
+  duplicate?: boolean;
+  review?: boolean;
+  reason?: string;
+  order_id?: string;
+  error?: string;
 };
 
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return json({ ok: true });
+  }
   if (req.method !== 'POST') {
     return json({ error: 'Method not allowed' }, 405);
   }
@@ -46,6 +45,9 @@ Deno.serve(async (req) => {
     return json({ error: 'Invalid signature.' }, 400);
   }
 
+  if (event.livemode) {
+    return json({ ok: true, ignored: 'livemode' });
+  }
   if (event.type !== 'payment_intent.succeeded' && event.type !== 'charge.refunded') {
     return json({ ok: true, ignored: event.type });
   }
@@ -54,101 +56,110 @@ Deno.serve(async (req) => {
 
   if (event.type === 'charge.refunded') {
     const charge = event.data.object as Stripe.Charge;
-    const paymentRef = typeof charge.payment_intent === 'string' ? charge.payment_intent : charge.payment_intent?.id;
-    if (!paymentRef) {
-      return json({ ok: true });
+    const paymentRef = typeof charge.payment_intent === 'string' ? charge.payment_intent : charge.payment_intent?.id ?? null;
+    const decision = decideRefund({
+      amount: charge.amount,
+      amountRefunded: charge.amount_refunded,
+      paymentIntentId: paymentRef,
+      refunded: charge.refunded,
+    });
+    if (decision === 'ignore' || !paymentRef) {
+      return json({ ok: true, ignored: 'refund' });
     }
+    const full = decision === 'full';
+    await admin.from('refund_markers').upsert({
+      payment_ref: paymentRef,
+      amount_refunded: charge.amount_refunded,
+      full_refund: full,
+    });
     const { data: order } = await admin.from('orders').select('id').eq('payment_ref', paymentRef).maybeSingle();
     if (!order) {
-      return json({ ok: true });
+      return json({ ok: true, marked: true, refunded: full });
     }
-    await admin.from('orders').update({ status: 'refunded' }).eq('id', order.id);
-    await admin.from('tickets').update({ status: 'refunded' }).eq('order_id', order.id);
-    return json({ ok: true, refunded: true });
+    if (full) {
+      await admin.from('orders').update({ status: 'refunded' }).eq('id', order.id);
+      await admin.from('tickets').update({ status: 'refunded' }).eq('order_id', order.id).in('status', ['valid', 'checked_in']);
+      return json({ ok: true, refunded: true });
+    }
+    await admin.from('orders').update({ status: 'review' }).eq('id', order.id);
+    return json({ ok: true, review: 'partial_refund' });
   }
 
   const intent = event.data.object as Stripe.PaymentIntent;
-  const tierId = intent.metadata?.tier_id;
-  const userId = intent.metadata?.user_id;
-  const quantity = Number(intent.metadata?.quantity ?? 0);
-  if (!tierId || !userId || !Number.isInteger(quantity) || quantity < 1 || quantity > 8) {
-    return json({ error: 'Payment metadata is incomplete.' }, 400);
+  const decision = decideSucceeded(toIntentView(intent));
+  if (decision.kind === 'ignore') {
+    return json({ ok: true, ignored: decision.reason });
   }
 
-  const { data: existing } = await admin.from('orders').select('id').eq('payment_ref', intent.id).maybeSingle();
-  if (existing) {
-    return json({ ok: true, duplicate: true });
+  const { data: marker } = await admin.from('refund_markers').select('full_refund').eq('payment_ref', intent.id).maybeSingle();
+  let outcome: 'paid' | 'review' | 'refunded' = decision.kind === 'review' ? 'review' : 'paid';
+  if (marker) {
+    outcome = marker.full_refund ? 'refunded' : 'review';
   }
-
-  const { data: tier } = await admin
-    .from('ticket_tiers')
-    .select('id, event_id, name, price_cents')
-    .eq('id', tierId)
-    .maybeSingle();
-  const priced = tier as TierRow | null;
-  if (!priced || priced.price_cents == null) {
-    return json({ error: 'Tier missing.' }, 400);
-  }
-  if (intent.amount !== priced.price_cents * quantity) {
-    return json({ error: 'Amount mismatch.' }, 400);
-  }
-
-  const { data: eventRow } = await admin
-    .from('events')
-    .select('name, edition, long_date_label, time_label')
-    .eq('id', priced.event_id)
-    .maybeSingle();
-  const evening = eventRow as EventRow | null;
-  const { data: profile } = await admin.from('guest_profiles').select('display_name').eq('id', userId).maybeSingle();
-  const guestName = profile?.display_name || 'Guest';
-
-  const { data: order, error: orderError } = await admin
-    .from('orders')
-    .insert({
-      profile_id: userId,
-      event_id: priced.event_id,
-      tier_id: priced.id,
-      quantity,
-      total_cents: priced.price_cents * quantity,
-      status: 'paid',
-      payment_ref: intent.id,
-      sample: false,
-    })
-    .select('id')
-    .single();
-  if (orderError) {
-    if (orderError.code === '23505') {
-      return json({ ok: true, duplicate: true });
+  if (outcome === 'paid') {
+    try {
+      const fresh = await stripe.paymentIntents.retrieve(intent.id, { expand: ['latest_charge'] });
+      const charge = fresh.latest_charge;
+      if (charge && typeof charge === 'object') {
+        const refund = decideRefund({
+          amount: charge.amount,
+          amountRefunded: charge.amount_refunded,
+          paymentIntentId: intent.id,
+          refunded: charge.refunded,
+        });
+        if (refund === 'full') outcome = 'refunded';
+        if (refund === 'partial') outcome = 'review';
+      }
+    } catch {
+      // The success event itself is enough to issue. A retrieve failure must not 500.
     }
-    return json({ error: orderError.message }, 500);
   }
 
-  const dated = priced.event_id === 'sunset-social';
-  const tickets = Array.from({ length: quantity }, (_, index) => ({
-    order_id: order.id,
-    event_id: priced.event_id,
-    tier_id: priced.id,
-    holder_profile_id: userId,
-    guest_name: guestName,
-    code: ticketCode(),
-    status: 'valid',
-    ticket_index: index + 1,
-    ticket_count: quantity,
-    sample: false,
-    event_name: evening?.name ?? 'Sunset Social',
-    edition: evening?.edition ?? '01',
-    tier_name: priced.name,
-    doors_label: 'Golden hour',
-    date_month: dated ? 'JAN' : null,
-    date_day: dated ? '23' : null,
-    date_year: dated ? '2027' : null,
-    date_weekday: dated ? 'Saturday' : null,
-    date_time: evening?.time_label || 'Time TBA',
-    event_timing: 'upcoming',
-  }));
-  const { error: ticketError } = await admin.from('tickets').insert(tickets);
-  if (ticketError) {
-    return json({ error: ticketError.message }, 500);
+  const tierId = decision.kind === 'issue' ? decision.tierId : intent.metadata?.tier_id ?? '';
+  const userId = decision.kind === 'issue' ? decision.userId : intent.metadata?.user_id ?? '';
+  const quantity = decision.kind === 'issue' ? decision.quantity : Number(intent.metadata?.quantity ?? 1);
+  const unitPrice = decision.kind === 'issue' ? decision.unitPriceCents : Number(intent.metadata?.unit_price_cents ?? 0);
+  const amount = decision.kind === 'issue' ? decision.amount : intent.amount;
+
+  if (!tierId || !userId) {
+    return json({ ok: true, review: 'incomplete' });
   }
-  return json({ ok: true });
+
+  const { data, error } = await admin.rpc('issue_order', {
+    p_intent_id: intent.id,
+    p_user: userId,
+    p_tier: tierId,
+    p_qty: Number.isInteger(quantity) && quantity >= 1 ? quantity : 1,
+    p_amount: amount,
+    p_unit_price: Number.isInteger(unitPrice) ? unitPrice : 0,
+    p_outcome: outcome,
+  });
+  if (error) {
+    // The function rolls back as a whole, so a retry is safe.
+    return json({ error: error.message }, 500);
+  }
+  const result = (data ?? {}) as IssueResult;
+  if (result.reason === 'capacity' || result.reason === 'tier_capacity') {
+    try {
+      await stripe.refunds.create({ payment_intent: intent.id });
+    } catch {
+      // The order is already marked review and has no tickets. Stripe must not retry.
+    }
+    return json({ ok: true, review: result.reason });
+  }
+  if (decision.kind === 'review' || result.review) {
+    return json({ ok: true, review: decision.kind === 'review' ? decision.reason : result.reason ?? 'review' });
+  }
+  return json({ ok: true, duplicate: result.duplicate === true, order_id: result.order_id });
 });
+
+function toIntentView(intent: Stripe.PaymentIntent): IntentView {
+  return {
+    id: intent.id,
+    amount: intent.amount,
+    currency: intent.currency,
+    status: intent.status,
+    livemode: intent.livemode,
+    metadata: intent.metadata ?? {},
+  };
+}

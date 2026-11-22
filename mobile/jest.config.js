@@ -3,12 +3,12 @@ module.exports = {
   preset: 'jest-expo',
   testMatch: ['**/*.test.ts', '**/*.test.tsx'],
   setupFilesAfterEnv: ['<rootDir>/test/setup.ts'],
-  forceExit: true,
   moduleNameMapper: {
     '\\.(jpg|jpeg|png|webp)$': '<rootDir>/test/fileMock.js',
   },
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',
+    'supabase/functions/_shared/fulfillment.ts',
     '!src/**/*.d.ts',
     '!src/**/*.test.ts',
     '!src/**/*.test.tsx',

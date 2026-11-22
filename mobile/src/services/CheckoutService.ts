@@ -1,3 +1,4 @@
+import { newCheckoutAttemptId } from '../../supabase/functions/_shared/fulfillment';
 import { MAX_TICKETS_PER_ORDER } from '@/domain/copy';
 import type { PlaceInput, PlacedOrder, Quote, TicketTier } from '@/domain/types';
 import { CheckoutError } from '@/services/errors';
@@ -39,19 +40,20 @@ export class CheckoutService {
     if (input.guestName.trim().length === 0) {
       throw new CheckoutError('Add the name for the ticket.', 'tier');
     }
+    const attemptKey = input.idempotencyKey && input.idempotencyKey.length > 0 ? input.idempotencyKey : newCheckoutAttemptId();
     if (this.mode === 'demo') {
       return this.orders.createPaid({
         ...input,
         ...quote,
         guestName: input.guestName.trim(),
         sample: true,
-        paymentRef: input.idempotencyKey ?? `sample_${input.profileId}_${quote.eventId}_${quote.quantity}`,
+        paymentRef: attemptKey,
       });
     }
     const intent = await this.payments.createIntent({
       tierId: tier.id,
       quantity: quote.quantity,
-      idempotencyKey: input.idempotencyKey ?? `${input.profileId}:${tier.id}:${quote.quantity}`,
+      idempotencyKey: attemptKey,
     });
     if (intent.amount !== quote.totalCents) {
       throw new CheckoutError('The charge does not match the ticket price.', 'payment');

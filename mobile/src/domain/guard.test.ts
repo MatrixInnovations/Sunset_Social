@@ -246,7 +246,7 @@ describe('stubs', () => {
     expect(source).not.toContain('body.price');
     expect(checkIn).toContain('staff_roles');
     expect(checkIn).toContain('refunded');
-    expect(webhook).toContain('payment_ref');
-    expect(webhook).toContain('Amount mismatch');
+    expect(webhook).toContain("rpc('issue_order'");
+    expect(webhook).not.toContain("error: 'Amount mismatch.'");
   });
 });
