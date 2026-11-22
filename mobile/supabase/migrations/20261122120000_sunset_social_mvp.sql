@@ -306,7 +306,7 @@ insert into public.events (
   capacity, host_name, host_line, sort
 ) values
   (
-    'sunset-social', '01', 'EVENT I · ROOFTOP SOCIAL', 'EDITION NO. 01', 'Sunset Social', 'Social',
+    'sunset-social', '01', 'EVENT I · LUXURY PENTHOUSE', 'EDITION NO. 01', 'Sunset Social', 'Social',
     'A premium recurring penthouse social experience at golden hour.',
     'Sat, Jan 23, 2027', 'Saturday, January 23, 2027',
     null, 'Time TBA', 3500, 'toast', 'on_sale', '21+',

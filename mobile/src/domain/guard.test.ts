@@ -88,7 +88,7 @@ describe('copy guardrails', () => {
     const event = mapEventRow({
       id: 'sunset-social',
       edition: '01',
-      series_label: 'EVENT I · ROOFTOP SOCIAL',
+      series_label: 'EVENT I · LUXURY PENTHOUSE',
       edition_label: 'EDITION NO. 01',
       name: 'Sunset Social',
       italic_tail: 'Social',
