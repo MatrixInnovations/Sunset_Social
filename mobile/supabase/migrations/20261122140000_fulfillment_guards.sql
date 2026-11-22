@@ -211,7 +211,7 @@ begin
           case when v_event_id = 'sunset-social' then '23' else null end,
           case when v_event_id = 'sunset-social' then '2027' else null end,
           case when v_event_id = 'sunset-social' then 'Saturday' else null end,
-          coalesce(nullif(v_time, ''), 'Time TBA'),
+          coalesce(nullif(v_time, ''), '5:00 to 8:00 PM ET'),
           'upcoming'
         );
         v_inserted := true;

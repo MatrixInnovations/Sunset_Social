@@ -309,7 +309,7 @@ insert into public.events (
     'sunset-social', '01', 'EVENT I · LUXURY PENTHOUSE', 'EDITION NO. 01', 'Sunset Social', 'Social',
     'A premium recurring penthouse social experience at golden hour.',
     'Sat, Jan 23, 2027', 'Saturday, January 23, 2027',
-    null, 'Time TBA', 3500, 'toast', 'on_sale', '21+',
+    '2027-01-23T17:00:00-05:00', '5:00 to 8:00 PM ET', 3500, 'toast', 'on_sale', '21+',
     'Rooftop venue to be announced', 'Sat, Jan 23, 2027',
     60, 'Andrew Lowery', 'Sunset Social · The Tasting Room', 1
   ),

@@ -58,7 +58,7 @@ export class EventService {
     }
     const text = encodeURIComponent(event.name);
     const details = encodeURIComponent(`${copy.timeTba}. ${copy.addressHolders}`);
-    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=20270123/20270124&details=${details}`;
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=20270123T170000/20270123T200000&ctz=America/New_York&details=${details}`;
   }
 
   shareMessage(event: SocialEvent): string {

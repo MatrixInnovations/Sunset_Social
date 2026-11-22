@@ -54,14 +54,14 @@ describe('sample services', () => {
     const events = await services.events.list();
     expect(events.map((event) => event.id)).toEqual(['sunset-social', 'tasting-room']);
     expect(events[0]?.longWhen).toBe('Saturday, January 23, 2027');
-    expect(events[0]?.timeLabel).toBe('Time TBA');
+    expect(events[0]?.timeLabel).toBe('5:00 to 8:00 PM ET');
     expect(events[0]?.priceFromCents).toBe(3500);
     expect(events[0]?.venuePublicLabel).toBe('Rooftop venue to be announced');
     expect(events[1]?.shortWhen).toBe('Jan 2027');
     expect(events[1]?.hasDate).toBe(false);
     expect(events[1]?.longWhen).toBeNull();
     expect(services.events.calendarUrl(events[1]!)).toBeNull();
-    expect(services.events.calendarUrl(events[0]!)).toContain('20270123');
+    expect(services.events.calendarUrl(events[0]!)).toContain('dates=20270123T170000/20270123T200000&ctz=America/New_York');
     expect(services.events.calendarUrl(events[0]!)).not.toContain('location=');
     expect(services.events.shareMessage(events[0]!)).not.toMatch(/street|avenue/i);
     await expect(services.events.get('missing')).rejects.toThrow(/not on the calendar/);
