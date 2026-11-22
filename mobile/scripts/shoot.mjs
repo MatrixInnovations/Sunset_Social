@@ -2,7 +2,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import puppeteer from 'puppeteer-core';
+import { launch } from 'puppeteer-core';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../dist');
 const outDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../docs/screenshots');
@@ -59,7 +59,7 @@ const shots = [
   { route: '/profile', file: '07-profile', text: 'Your Name' },
 ];
 
-const browser = await puppeteer.launch({
+const browser = await launch({
   executablePath: '/usr/bin/google-chrome',
   headless: true,
   args: ['--no-sandbox', '--disable-dev-shm-usage'],

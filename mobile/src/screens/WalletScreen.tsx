@@ -10,7 +10,9 @@ import { useServices } from '@/bootstrap/ServicesContext';
 import { copy, sampleLabels } from '@/domain/copy';
 import { formatTicketCode } from '@/domain/format';
 import type { TicketRecord } from '@/domain/types';
+import { haptic } from '@/motion/haptics';
 import { colors, fonts } from '@/theme/tokens';
+import type { ReactNode } from 'react';
 
 const tabs = ['Upcoming', 'Past', 'Waitlist'] as const;
 
@@ -34,7 +36,14 @@ export function WalletScreen() {
         </Text>
         <View style={styles.tabs}>
           {tabs.map((name) => (
-            <Pressable key={name} onPress={() => setTab(name)} style={[styles.tab, tab === name && styles.tabOn]}>
+            <Pressable
+              key={name}
+              onPress={() => {
+                haptic.select();
+                setTab(name);
+              }}
+              style={[styles.tab, tab === name && styles.tabOn]}
+            >
               <Text style={[styles.tabText, tab === name && styles.tabTextOn]}>{name}</Text>
             </Pressable>
           ))}
@@ -75,7 +84,7 @@ export function WalletScreen() {
   );
 }
 
-export function GoldTicket({ ticket }: { ticket: TicketRecord }) {
+export function GoldTicket({ ticket, wrapQr }: { ticket: TicketRecord; wrapQr?: (node: ReactNode) => ReactNode }) {
   return (
     <LinearGradient colors={['#f7edd4', '#e3c16f', '#c9a96e', '#b8924e']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.ticket}>
       <View style={styles.notchLeft} />
@@ -107,9 +116,7 @@ export function GoldTicket({ ticket }: { ticket: TicketRecord }) {
         <Meta label="VENUE" value={ticket.venueLabel} />
       </View>
       <View style={styles.perf} />
-      <View style={styles.qrWrap}>
-        <QrMark code={ticket.code} />
-      </View>
+      <View style={styles.qrWrap}>{wrapQr ? wrapQr(<QrMark code={ticket.code} />) : <QrMark code={ticket.code} />}</View>
       <Text style={styles.code}>{formatTicketCode(ticket.code)}</Text>
       <Text style={styles.hint}>Show at the door · brightness up</Text>
     </LinearGradient>

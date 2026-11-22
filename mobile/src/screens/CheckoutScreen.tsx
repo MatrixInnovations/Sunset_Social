@@ -14,6 +14,7 @@ import { copy, sampleLabels } from '@/domain/copy';
 import { formatMoney } from '@/domain/format';
 import type { Quote, TicketTier } from '@/domain/types';
 import { CheckoutError } from '@/services/errors';
+import { useSessionStore } from '@/store/session';
 import { colors, fonts } from '@/theme/tokens';
 
 export function CheckoutScreen() {
@@ -45,9 +46,15 @@ export function CheckoutScreen() {
         guestName: profile.displayName,
       });
     },
-    onSuccess: async () => {
+    onSuccess: async (order) => {
       await client.invalidateQueries({ queryKey: ['wallet'] });
       await client.invalidateQueries({ queryKey: ['stats'] });
+      const ticket = order.tickets[0];
+      if (ticket) {
+        useSessionStore.getState().setConfirmedTicket(ticket);
+        router.push('/ticket-reveal');
+        return;
+      }
       router.replace('/tickets');
     },
     onError: (error: unknown) => {

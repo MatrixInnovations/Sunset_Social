@@ -1,17 +1,21 @@
 import { useQuery } from '@tanstack/react-query';
-import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, Share, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Defs, LinearGradient as SvgGradient, Path, Rect, Stop } from 'react-native-svg';
 
 import { toastImage } from '@/assets';
 import { CalendarIcon, PinIcon } from '@/components/icons';
-import { GoldButton, OutlineButton, Pill, Seal } from '@/components/ui';
+import { OutlineButton, Pill, Seal } from '@/components/ui';
 import { useServices } from '@/bootstrap/ServicesContext';
 import { sampleLabels } from '@/domain/copy';
 import { formatMoney } from '@/domain/format';
+import { blockIn } from '@/motion/entrances';
+import { HERO_ART } from '@/motion/heroFraming';
+import { ParallaxHero, useHeroScroll } from '@/motion/ParallaxHero';
+import { ShimmerReserveButton } from '@/motion/ShimmerReserveButton';
+import { useMotionPrefs } from '@/motion/useMotionPrefs';
 import { useSessionStore } from '@/store/session';
 import { colors, fonts } from '@/theme/tokens';
 
@@ -21,6 +25,10 @@ export function EventScreen() {
   const services = useServices();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { width: windowWidth } = useWindowDimensions();
+  const heroW = Math.max(320, Math.min(windowWidth, 440));
+  const { scrollY, onScroll } = useHeroScroll();
+  const { reduceMotion } = useMotionPrefs();
   const saved = useSessionStore((state) => state.savedIds.includes(eventId));
   const toggleSaved = useSessionStore((state) => state.toggleSaved);
   const eventQuery = useQuery({ queryKey: ['event', eventId], queryFn: () => services.events.get(eventId) });
@@ -49,14 +57,10 @@ export function EventScreen() {
 
   return (
     <View testID="screen-event" style={styles.screen}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 150 }} showsVerticalScrollIndicator={false}>
-        <View style={styles.hero}>
-          {event.hero === 'toast' ? (
-            <Image source={toastImage} style={StyleSheet.absoluteFill} contentFit="cover" accessibilityLabel="Guests toasting at golden hour" />
-          ) : (
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: '#2a140e' }]} />
-          )}
-          <LinearGradient colors={['rgba(11,10,12,0.15)', 'rgba(11,10,12,0.05)', colors.ink]} style={StyleSheet.absoluteFill} />
+      <Animated.ScrollView onScroll={onScroll} scrollEventThrottle={16} contentContainerStyle={{ paddingBottom: 150 }} showsVerticalScrollIndicator={false}>
+        {event.hero === 'toast' ? (
+          <ParallaxHero source={toastImage} art={HERO_ART.sunsetToast} scrollY={scrollY} width={heroW}>
+            <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
           <View style={[styles.floatRow, { top: Math.max(insets.top, 12) }]}>
             <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.round}>
               <Text style={styles.roundText}>‹</Text>
@@ -73,10 +77,21 @@ export function EventScreen() {
                 <Text style={styles.roundText}>↑</Text>
               </Pressable>
             </View>
+            </View>
+            </View>
+          </ParallaxHero>
+        ) : (
+          <View style={styles.tastingHero}>
+            <TastingArt />
+            <View style={[styles.floatRow, { top: Math.max(insets.top, 12) }]}>
+              <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.round}>
+                <Text style={styles.roundText}>‹</Text>
+              </Pressable>
+            </View>
           </View>
-        </View>
+        )}
 
-        <View style={styles.body}>
+        <Animated.View entering={blockIn(0, reduceMotion)} style={styles.body}>
           <Text style={styles.series}>
             {event.seriesLabel} · {event.editionLabel}
           </Text>
@@ -142,8 +157,8 @@ export function EventScreen() {
               }}
             />
           </View>
-        </View>
-      </ScrollView>
+        </Animated.View>
+      </Animated.ScrollView>
 
       <View style={[styles.sticky, { paddingBottom: Math.max(insets.bottom, 12) }]}>
         {event.priceFromCents != null ? (
@@ -156,18 +171,36 @@ export function EventScreen() {
           <Text style={styles.paid}>Date still open</Text>
         )}
         <View style={{ flex: 1 }}>
-          <GoldButton
-            label={event.priceFromCents != null ? 'RESERVE YOUR PLACE' : 'TICKETS OPEN WITH THE DATE'}
+          <ShimmerReserveButton
+            label={event.priceFromCents != null ? 'Reserve your place' : 'Tickets open with the date'}
             testID="reserve-your-place"
-            onPress={() => {
-              if (event.priceFromCents == null) return;
-              void Haptics.selectionAsync();
-              router.push(`/checkout/${event.id}`);
-            }}
+            disabled={event.priceFromCents == null}
+            shimmer={event.priceFromCents != null}
+            onPress={() => router.push(`/checkout/${event.id}`)}
           />
         </View>
       </View>
     </View>
+  );
+}
+
+function TastingArt() {
+  return (
+    <Svg width="100%" height="100%" viewBox="0 0 160 220" style={StyleSheet.absoluteFill}>
+      <Defs>
+        <SvgGradient id="event-sky" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor="#6a3a28" />
+          <Stop offset="0.55" stopColor="#2a140e" />
+          <Stop offset="1" stopColor="#0b0a0c" />
+        </SvgGradient>
+      </Defs>
+      <Rect width="160" height="220" fill="url(#event-sky)" />
+      <Path d="M48 70h16l8 46H40l8-46Z" stroke={colors.gold} strokeWidth={1.4} fill="rgba(201,169,110,0.16)" />
+      <Path d="M46 122h28v12c0 16-6 24-14 24s-14-8-14-24v-12Z" stroke={colors.goldBright} strokeWidth={1.4} fill="rgba(227,193,111,0.2)" />
+      <Path d="M96 64c10 14 10 26 0 40-10-14-10-26 0-40Z" stroke={colors.gold300} strokeWidth={1.4} fill="none" />
+      <Path d="M96 104v36" stroke={colors.gold300} strokeWidth={1.4} />
+      <Path d="M84 146h24" stroke={colors.gold300} strokeWidth={1.4} />
+    </Svg>
   );
 }
 
@@ -178,7 +211,7 @@ function swatch(index: number): string {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.ink },
   muted: { color: colors.ivoryDim, padding: 24, fontFamily: fonts.sans },
-  hero: { height: 210 },
+  tastingHero: { height: 240, backgroundColor: '#2a140e' },
   floatRow: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between' },
   row: { flexDirection: 'row', gap: 8 },
   round: {

@@ -1,5 +1,6 @@
 import { userEvent } from '@testing-library/react-native';
 
+import { TicketRevealScreen } from '@/screens/TicketRevealScreen';
 import { AuthScreen } from '@/screens/AuthScreen';
 import { EditProfileScreen } from '@/screens/EditProfileScreen';
 import { LoungeScreen } from '@/screens/LoungeScreen';
@@ -15,6 +16,7 @@ import { WalletScreen } from '@/screens/WalletScreen';
 import { createSampleServices } from '@/bootstrap/createSampleServices';
 import { SampleDatabase } from '@/data/sampleDatabase';
 import { renderScreen } from '../../test/render';
+import { useSessionStore } from '@/store/session';
 import { params, router } from '../../test/routerMock';
 
 describe('MVP screens', () => {
@@ -160,11 +162,21 @@ describe('MVP screens', () => {
     const checkout = await renderScreen(<CheckoutScreen />);
     expect((await checkout.findAllByText('$70.00')).length).toBeGreaterThan(0);
     await userEvent.press(checkout.getByTestId('apple-pay'));
-    expect(router.replace).toHaveBeenCalledWith('/tickets');
+    expect(router.push).toHaveBeenCalledWith('/ticket-reveal');
     const profile = await renderScreen(<ProfileScreen />);
     await profile.findByText('Your Name');
     await userEvent.press(profile.getByTestId('toggle-dates'));
     await userEvent.press(profile.getByText('Door mode'));
     expect(router.push).toHaveBeenCalledWith('/door');
+  });
+
+  it('plays the golden ticket reveal copy', async () => {
+    const services = createSampleServices();
+    const wallet = await services.tickets.wallet('sample-you');
+    useSessionStore.setState({ confirmedTicket: wallet.upcoming[0] ?? null });
+    const view = await renderScreen(<TicketRevealScreen />, services);
+    expect(view.getByText("You're on the list.")).toBeTruthy();
+    expect(view.getByText('See you at golden hour.')).toBeTruthy();
+    expect(view.getByText('SAMPLE · SS01-0001')).toBeTruthy();
   });
 });

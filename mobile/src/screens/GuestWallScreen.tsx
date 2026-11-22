@@ -8,7 +8,11 @@ import { Pill } from '@/components/ui';
 import { useServices } from '@/bootstrap/ServicesContext';
 import { sampleLabels } from '@/domain/copy';
 import type { WallGuest } from '@/domain/types';
+import { listItemIn } from '@/motion/entrances';
+import { haptic } from '@/motion/haptics';
+import { useMotionPrefs } from '@/motion/useMotionPrefs';
 import { colors, fonts, tiles } from '@/theme/tokens';
+import Animated from 'react-native-reanimated';
 
 export function GuestWallScreen() {
   const services = useServices();
@@ -67,8 +71,8 @@ export function GuestWallScreen() {
               </View>
             </View>
             <View style={styles.grid}>
-              {wall.data.people.map((person) => (
-                <GuestCard key={person.id} person={person} onWave={() => wave.mutate(person)} />
+              {wall.data.people.map((person, index) => (
+                <GuestCard key={person.id} person={person} index={index} onWave={() => wave.mutate(person)} />
               ))}
             </View>
           </>
@@ -87,10 +91,11 @@ function Stat({ value, label }: { value: string; label: string }) {
   );
 }
 
-function GuestCard({ person, onWave }: { person: WallGuest; onWave: () => void }) {
+function GuestCard({ person, index, onWave }: { person: WallGuest; index: number; onWave: () => void }) {
   const [from, to] = tiles[person.tile];
+  const { reduceMotion } = useMotionPrefs();
   return (
-    <View testID={`guest-${person.id}`} style={styles.card}>
+    <Animated.View entering={listItemIn(index, reduceMotion)} testID={`guest-${person.id}`} style={styles.card}>
       <LinearGradient colors={[from, to]} style={styles.swatch}>
         <Text style={styles.mono}>{person.monogram}</Text>
       </LinearGradient>
@@ -98,12 +103,19 @@ function GuestCard({ person, onWave }: { person: WallGuest; onWave: () => void }
       {person.bio ? <Text style={styles.bio}>{person.bio}</Text> : <View style={{ height: 8 }} />}
       <View style={styles.cardFoot}>
         <Text style={styles.tier}>GOLDEN HOUR</Text>
-        <Pressable accessibilityRole="button" onPress={onWave} style={styles.wave}>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => {
+            haptic.select();
+            onWave();
+          }}
+          style={styles.wave}
+        >
           <WaveIcon />
           <Text style={styles.waveText}>Wave</Text>
         </Pressable>
       </View>
-    </View>
+    </Animated.View>
   );
 }
 

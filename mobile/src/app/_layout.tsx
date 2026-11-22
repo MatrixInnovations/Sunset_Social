@@ -23,6 +23,7 @@ import { createAppServices } from '@/bootstrap/createAppServices';
 import { ServicesProvider } from '@/bootstrap/ServicesContext';
 import { readPublishableKey } from '@/lib/env';
 import { StripeRoot } from '@/payments/presenter';
+import { stackScreen } from '@/motion/motion';
 import { colors } from '@/theme/tokens';
 
 import '../global.css';
@@ -75,9 +76,16 @@ export default function RootLayout() {
                   screenOptions={{
                     headerShown: false,
                     contentStyle: { backgroundColor: colors.ink },
-                    animation: 'fade',
+                    animation: 'default',
                   }}
-                />
+                >
+                  <Stack.Screen name="event/[id]" options={stackScreen.default} />
+                  <Stack.Screen name="checkout/[id]" options={stackScreen.checkout} />
+                  <Stack.Screen
+                    name="ticket-reveal"
+                    options={{ ...stackScreen.ticketReveal, contentStyle: { backgroundColor: 'transparent' } }}
+                  />
+                </Stack>
               </View>
             </View>
           </StripeRoot>

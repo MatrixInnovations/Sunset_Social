@@ -1,15 +1,17 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DiscoverIcon, GuestsIcon, LoungeIcon, ProfileIcon, TicketIcon } from '@/components/icons';
-import { colors, fonts } from '@/theme/tokens';
+import { AnimatedTabIcon } from '@/motion/AnimatedTabIcon';
+import { haptic } from '@/motion/haptics';
+import { colors } from '@/theme/tokens';
 
 const items = [
-  { name: 'index', label: 'DISCOVER', Icon: DiscoverIcon },
-  { name: 'tickets', label: 'TICKETS', Icon: TicketIcon },
-  { name: 'guests', label: 'GUESTS', Icon: GuestsIcon },
-  { name: 'lounge', label: 'LOUNGE', Icon: LoungeIcon },
-  { name: 'profile', label: 'PROFILE', Icon: ProfileIcon },
+  { name: 'index', label: 'Discover', Icon: DiscoverIcon },
+  { name: 'tickets', label: 'Tickets', Icon: TicketIcon },
+  { name: 'guests', label: 'Guests', Icon: GuestsIcon },
+  { name: 'lounge', label: 'Lounge', Icon: LoungeIcon },
+  { name: 'profile', label: 'Profile', Icon: ProfileIcon },
 ] as const;
 
 type TabRoute = { name: string; key: string };
@@ -29,7 +31,6 @@ export function SunsetTabBar({
       {items.map((item) => {
         const routeIndex = state.routes.findIndex((route) => route.name === item.name);
         const active = state.index === routeIndex;
-        const color = active ? colors.goldBright : colors.ivoryFaint;
         return (
           <Pressable
             key={item.name}
@@ -38,6 +39,7 @@ export function SunsetTabBar({
             onPress={() => {
               const route = state.routes[routeIndex];
               if (!route) return;
+              haptic.select();
               if (navigateToTab) {
                 navigateToTab(route.key);
                 return;
@@ -46,9 +48,7 @@ export function SunsetTabBar({
             }}
             style={styles.item}
           >
-            <item.Icon color={color} />
-            <Text style={[styles.label, { color }]}>{item.label}</Text>
-            {active ? <View style={styles.dot} /> : <View style={styles.dotHidden} />}
+            <AnimatedTabIcon focused={active} label={item.label} renderIcon={(tint) => <item.Icon color={tint} />} />
           </Pressable>
         );
       })}
@@ -64,8 +64,5 @@ const styles = StyleSheet.create({
     borderTopColor: 'rgba(201,169,110,0.25)',
     paddingTop: 8,
   },
-  item: { flex: 1, alignItems: 'center', gap: 4 },
-  label: { fontFamily: fonts.sansSemi, fontSize: 9, letterSpacing: 0.8 },
-  dot: { width: 4, height: 4, borderRadius: 2, backgroundColor: colors.goldBright },
-  dotHidden: { width: 4, height: 4 },
+  item: { flex: 1, alignItems: 'center' },
 });

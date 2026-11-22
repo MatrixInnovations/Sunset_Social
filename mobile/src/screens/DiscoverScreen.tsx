@@ -2,18 +2,23 @@ import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient as SvgGradient, Path, Rect, Stop } from 'react-native-svg';
 
 import { toastImage } from '@/assets';
 import { BellIcon } from '@/components/icons';
-import { GoldButton, OutlineButton, Pill, Seal, Wordmark } from '@/components/ui';
+import { OutlineButton, Pill, Seal, Wordmark } from '@/components/ui';
 import { useServices } from '@/bootstrap/ServicesContext';
 import { copy, sampleLabels } from '@/domain/copy';
 import { formatMoney } from '@/domain/format';
 import type { SocialEvent } from '@/domain/types';
+import { blockIn } from '@/motion/entrances';
+import { HERO_ART } from '@/motion/heroFraming';
+import { ParallaxHero, useHeroScroll } from '@/motion/ParallaxHero';
+import { ShimmerReserveButton } from '@/motion/ShimmerReserveButton';
+import { useMotionPrefs } from '@/motion/useMotionPrefs';
 import { useSessionStore } from '@/store/session';
 import { colors, fonts } from '@/theme/tokens';
 
@@ -21,6 +26,10 @@ export function DiscoverScreen() {
   const services = useServices();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { width: windowWidth } = useWindowDimensions();
+  const cardW = Math.max(280, Math.min(windowWidth, 440) - 32);
+  const { scrollY } = useHeroScroll();
+  const { reduceMotion } = useMotionPrefs();
   const setVip = useSessionStore((state) => state.setVipJoined);
   const vipJoined = useSessionStore((state) => state.vipJoined);
   const events = useQuery({ queryKey: ['events'], queryFn: () => services.events.list() });
@@ -40,15 +49,21 @@ export function DiscoverScreen() {
           </Pressable>
         </View>
 
-        <Animated.View entering={FadeInDown.duration(480)}>
+        <Animated.View entering={blockIn(0, reduceMotion)}>
           <Text style={styles.greeting}>{copy.greeting}</Text>
           <Text style={styles.greetingSub}>{copy.greetingSub}</Text>
         </Animated.View>
 
         {sunset ? (
           <Pressable onPress={() => router.push(`/event/${sunset.id}`)} style={styles.hero}>
-            <Image source={toastImage} style={StyleSheet.absoluteFill} contentFit="cover" accessibilityLabel="Guests toasting at golden hour" />
-            <LinearGradient colors={['rgba(11,10,12,0.05)', 'rgba(11,10,12,0.2)', 'rgba(11,10,12,0.92)']} style={StyleSheet.absoluteFill} />
+            <ParallaxHero
+              source={toastImage}
+              art={HERO_ART.sunsetToast}
+              scrollY={scrollY}
+              width={cardW}
+              designHeight={313}
+              parallax={false}
+            >
             <View style={styles.heroTop}>
               <View style={styles.row}>
                 <Pill label="Next evening" />
@@ -71,14 +86,16 @@ export function DiscoverScreen() {
                   ))}
                   <Text style={styles.going}>{sampleLabels.going}</Text>
                 </View>
-                <GoldButton
+                <ShimmerReserveButton
                   compact
-                  label="RESERVE"
+                  shimmer={false}
+                  label="Reserve"
                   testID="discover-reserve"
                   onPress={() => router.push(`/checkout/${sunset.id}`)}
                 />
               </View>
             </View>
+            </ParallaxHero>
           </Pressable>
         ) : (
           <Text style={styles.muted}>{events.error instanceof Error ? events.error.message : 'Loading the evening…'}</Text>
@@ -182,7 +199,7 @@ const styles = StyleSheet.create({
     lineHeight: 30,
     marginBottom: 14,
   },
-  hero: { marginHorizontal: 16, height: 318, borderRadius: 26, overflow: 'hidden' },
+  hero: { marginHorizontal: 16, borderRadius: 26, overflow: 'hidden' },
   heroTop: { flexDirection: 'row', justifyContent: 'space-between', padding: 12 },
   row: { flexDirection: 'row', gap: 6 },
   heroBody: { position: 'absolute', left: 14, right: 14, bottom: 14 },
