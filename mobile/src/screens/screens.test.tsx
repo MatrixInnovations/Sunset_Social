@@ -14,6 +14,7 @@ import { EventScreen } from '@/screens/EventScreen';
 import { ProfileScreen } from '@/screens/ProfileScreen';
 import { WalletScreen } from '@/screens/WalletScreen';
 import { createSampleServices } from '@/bootstrap/createSampleServices';
+import { formatReviewTime } from '@/domain/format';
 import { SampleDatabase } from '@/data/sampleDatabase';
 import { renderScreen } from '../../test/render';
 import { useSessionStore } from '@/store/session';
@@ -124,7 +125,7 @@ describe('MVP screens', () => {
     expect(view.getByText('Sunset Social')).toBeTruthy();
     expect(view.getByText('review')).toBeTruthy();
     expect(view.getByText('capacity')).toBeTruthy();
-    expect(view.getByText('2026-11-22 03:00')).toBeTruthy();
+    expect(view.getByText(formatReviewTime('2026-11-22T03:00:00.000Z'))).toBeTruthy();
     expect(view.getByText('SAMPLE')).toBeTruthy();
     await userEvent.press(view.getByTestId('door-approve'));
     expect(view.getByText(/later release/i)).toBeTruthy();

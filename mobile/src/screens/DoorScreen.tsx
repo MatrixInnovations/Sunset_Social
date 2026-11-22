@@ -8,7 +8,7 @@ import { DoorViewfinder } from '@/components/DoorViewfinder';
 import { Pill } from '@/components/ui';
 import { useServices } from '@/bootstrap/ServicesContext';
 import { sampleLabels } from '@/domain/copy';
-import { formatTicketCode, isRedScan, scanTitle } from '@/domain/format';
+import { formatReviewTime, formatTicketCode, isRedScan, scanTitle } from '@/domain/format';
 import type { ScanResult } from '@/domain/types';
 import { useSessionStore } from '@/store/session';
 import { colors, fonts } from '@/theme/tokens';
@@ -119,7 +119,7 @@ export function DoorScreen() {
                 <Text style={styles.guestMeta}>{order.eventName}</Text>
                 <Text style={styles.guestMeta}>{order.status}</Text>
                 <Text style={styles.guestMeta}>{order.reviewNote || 'No note'}</Text>
-                <Text style={styles.guestMeta}>{order.createdAt.replace('T', ' ').slice(0, 16)}</Text>
+                <Text style={styles.guestMeta}>{formatReviewTime(order.createdAt)}</Text>
               </View>
             ))}
           </ScrollView>

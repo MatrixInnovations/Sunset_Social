@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 
 import { readPublishableKey, resolveMode } from '@/lib/env';
-import { formatMoney, formatTicketCode, isRedScan, scanTitle } from '@/domain/format';
+import { formatMoney, formatReviewTime, formatTicketCode, isRedScan, scanTitle } from '@/domain/format';
 import { mapEventRow, mapTicketRow, mapTierRow } from '@/data/rowMappers';
 import { SentryReporter } from '@/observability/SentryReporter';
 import { LaterRelease } from '@/services/LaterRelease';
@@ -69,6 +69,10 @@ describe('copy guardrails', () => {
     expect(formatMoney(3500)).toBe('$35');
     expect(formatMoney(7000, 'always')).toBe('$70.00');
     expect(formatMoney(3510)).toBe('$35.10');
+    expect(formatReviewTime('2026-11-22T03:00:00.000Z', 'America/New_York')).toBe('Nov 21, 10:00 PM ET');
+    expect(formatReviewTime('2026-11-22T03:00:00.000Z', 'UTC')).toBe('Nov 22, 3:00 AM UTC');
+    expect(formatReviewTime('2026-11-22T03:00:00.000Z', 'Europe/London')).toBe('Nov 22, 3:00 AM GMT');
+    expect(formatReviewTime('not-a-time')).toBe('not-a-time');
     expect(formatTicketCode('SAMPLE-SS01-0001')).toBe('SAMPLE · SS01-0001');
     expect(formatTicketCode('SS-ABC')).toBe('SS-ABC');
     expect(scanTitle('admitted', 1, 2)).toBe('ADMITTED · 1 OF 2');

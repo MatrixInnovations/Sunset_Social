@@ -9,6 +9,27 @@ export function formatMoney(cents: number, digits: 'auto' | 'always' = 'auto'): 
   return `${sign}$${showCents ? dollars.toFixed(2) : dollars.toFixed(0)}`;
 }
 
+const reviewTime: Intl.DateTimeFormatOptions = {
+  month: 'short',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+};
+
+export function formatReviewTime(iso: string, timeZone?: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return iso;
+  }
+  const zone = timeZone ? { timeZone } : {};
+  const generic = new Intl.DateTimeFormat('en-US', { ...reviewTime, ...zone, timeZoneName: 'shortGeneric' }).format(date);
+  const label = generic.split(' ').at(-1) ?? '';
+  if (/^[A-Z]{2,4}$/.test(label)) {
+    return generic;
+  }
+  return new Intl.DateTimeFormat('en-US', { ...reviewTime, ...zone, timeZoneName: 'short' }).format(date);
+}
+
 export function formatTicketCode(code: string): string {
   const prefix = 'SAMPLE-';
   if (code.startsWith(prefix)) {
