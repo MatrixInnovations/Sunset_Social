@@ -201,6 +201,25 @@ describe('Supabase repositories', () => {
     await expect(orders.createPaid({} as never)).rejects.toBeInstanceOf(CheckoutError);
     expect((await orders.waitForPayment('pi_1'))?.totalCents).toBe(3500);
     expect(await orders.waitForPayment('missing')).toBeNull();
+    const reviewDb = client({
+      orders: [
+        { id: 'rev-1', event_id: 'sunset-social', status: 'review', review_note: 'capacity', created_at: '2026-11-22T03:00:00.000Z' },
+        { id: 'paid-1', event_id: 'sunset-social', status: 'paid', review_note: null, created_at: '2026-11-22T02:00:00.000Z' },
+      ],
+      events: [{ id: 'sunset-social', name: 'Sunset Social' }],
+    });
+    const queue = await new SupabaseOrderRepository(reviewDb).listInReview();
+    expect(queue).toEqual([
+      {
+        id: 'rev-1',
+        eventId: 'sunset-social',
+        eventName: 'Sunset Social',
+        status: 'review',
+        reviewNote: 'capacity',
+        createdAt: '2026-11-22T03:00:00.000Z',
+        sample: false,
+      },
+    ]);
   });
 
   it('updates a profile, waves, and follows the host', async () => {

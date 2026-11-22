@@ -17,7 +17,7 @@ import { createSampleServices } from '@/bootstrap/createSampleServices';
 import { SampleDatabase } from '@/data/sampleDatabase';
 import { renderScreen } from '../../test/render';
 import { useSessionStore } from '@/store/session';
-import { params, router } from '../../test/routerMock';
+import { emitBack, params, router } from '../../test/routerMock';
 
 describe('MVP screens', () => {
   it('renders Discover with both evenings and the sample label', async () => {
@@ -118,6 +118,14 @@ describe('MVP screens', () => {
     expect(view.getByText('SAMPLE COUNTS & GUEST')).toBeTruthy();
     await userEvent.press(view.getByTestId('door-guest-list'));
     expect(await view.findByText('Maya R.')).toBeTruthy();
+    await userEvent.press(view.getByTestId('door-review'));
+    expect(await view.findByText('Needs review')).toBeTruthy();
+    expect(view.getByText('sample-review-order')).toBeTruthy();
+    expect(view.getByText('Sunset Social')).toBeTruthy();
+    expect(view.getByText('review')).toBeTruthy();
+    expect(view.getByText('capacity')).toBeTruthy();
+    expect(view.getByText('2026-11-22 03:00')).toBeTruthy();
+    expect(view.getByText('SAMPLE')).toBeTruthy();
     await userEvent.press(view.getByTestId('door-approve'));
     expect(view.getByText(/later release/i)).toBeTruthy();
     await userEvent.press(view.getByTestId('door-manual'));
@@ -168,7 +176,7 @@ describe('MVP screens', () => {
     };
     const checkout = await renderScreen(<CheckoutScreen />, services);
     await userEvent.press(await checkout.findByTestId('apple-pay'));
-    expect(router.push).toHaveBeenCalledWith('/ticket-reveal');
+    expect(router.replace).toHaveBeenCalledWith('/ticket-reveal');
     expect(useSessionStore.getState().confirmedTicket?.code.startsWith('SAMPLE-')).toBe(true);
     await userEvent.press(checkout.getByTestId('apple-pay'));
     expect(keys).toHaveLength(2);
@@ -179,7 +187,7 @@ describe('MVP screens', () => {
     const checkout = await renderScreen(<CheckoutScreen />);
     expect((await checkout.findAllByText('$70.00')).length).toBeGreaterThan(0);
     await userEvent.press(checkout.getByTestId('apple-pay'));
-    expect(router.push).toHaveBeenCalledWith('/ticket-reveal');
+    expect(router.replace).toHaveBeenCalledWith('/ticket-reveal');
     const profile = await renderScreen(<ProfileScreen />);
     await profile.findByText('Your Name');
     await userEvent.press(profile.getByTestId('toggle-dates'));
@@ -193,6 +201,10 @@ describe('MVP screens', () => {
     useSessionStore.setState({ confirmedTicket: wallet.upcoming[0] ?? null });
     const view = await renderScreen(<TicketRevealScreen />, services);
     expect(view.getByText("You're on the list.")).toBeTruthy();
+    const back = { data: { action: { type: 'POP' } }, preventDefault: jest.fn() };
+    emitBack(back);
+    expect(back.preventDefault).toHaveBeenCalled();
+    expect(router.replace).toHaveBeenCalledWith('/tickets');
     expect(view.getByText('See you at golden hour.')).toBeTruthy();
     expect(view.getByText('SAMPLE · SS01-0001')).toBeTruthy();
   });

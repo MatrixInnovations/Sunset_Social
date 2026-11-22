@@ -8,6 +8,7 @@ import type {
   NewPaidOrder,
   PlacedOrder,
   ProfilePatch,
+  ReviewOrder,
   ScanResult,
   SocialEvent,
   TicketRecord,
@@ -40,6 +41,7 @@ export interface TicketPort {
 export interface OrderPort {
   createPaid(input: NewPaidOrder): Promise<PlacedOrder>;
   waitForPayment(paymentRef: string): Promise<PlacedOrder | null>;
+  listInReview(): Promise<ReviewOrder[]>;
 }
 
 export interface PaymentGateway {

@@ -53,6 +53,7 @@ export function createAppServices(env: AppEnv = process.env): AppServices {
 export function createLiveServices(client: SupabaseClient, publishableKey: string | null, sentryDsn: string | null): AppServices {
   const events = new SupabaseEventRepository(client);
   const tickets = new SupabaseTicketRepository(client);
+  const orders = new SupabaseOrderRepository(client);
   const guestPort = new SupabaseGuestRepository(client);
   const guests = new GuestService(guestPort, tickets);
   return {
@@ -61,14 +62,14 @@ export function createLiveServices(client: SupabaseClient, publishableKey: strin
     tickets: new TicketService(tickets),
     checkout: new CheckoutService(
       events,
-      new SupabaseOrderRepository(client),
+      orders,
       new SupabasePaymentGateway(client),
       new PlatformPresenter(),
       'live',
       publishableKey,
     ),
     guests,
-    door: new DoorService(tickets, false),
+    door: new DoorService(tickets, orders, false),
     auth: new AuthService(new SupabaseAuthGateway(client), 'live'),
     notifications: new NotificationService('live', new ExpoNotificationGateway()),
     later: new LaterRelease(),

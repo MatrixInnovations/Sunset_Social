@@ -1,5 +1,5 @@
 import { SampleDatabase } from '@/data/sampleDatabase';
-import { SampleTicketRepository } from '@/data/sampleRepositories';
+import { SampleOrderRepository, SampleTicketRepository } from '@/data/sampleRepositories';
 import { createSampleServices } from '@/bootstrap/createSampleServices';
 import { isRedScan, parseTicketCode, qrPayload } from '@/domain/format';
 import { CheckoutService } from '@/services/CheckoutService';
@@ -32,6 +32,7 @@ function liveCheckout(overrides?: {
   const orders: OrderPort = {
     createPaid: jest.fn(),
     waitForPayment: jest.fn(async () => overrides?.order ?? null),
+    listInReview: jest.fn(async () => []),
   };
   const payments: PaymentGateway = {
     createIntent: jest.fn(async () => ({
@@ -215,7 +216,7 @@ describe('sample services', () => {
     const moved = db.tickets[0]!;
     moved.eventId = 'tasting-room';
     db.tickets[1]!.status = 'void';
-    const door = new DoorService(new SampleTicketRepository(db), true);
+    const door = new DoorService(new SampleTicketRepository(db), new SampleOrderRepository(db), true);
     const wrong = await door.scan(moved.code, 'sunset-social', db.viewerState);
     expect(wrong.outcome).toBe('wrong_event');
     const voided = await door.scan(db.tickets[1]!.code, 'sunset-social', db.viewerState);
@@ -238,11 +239,19 @@ describe('sample services', () => {
       sample: true,
       paidLabel: 'Refunded',
     });
-    const door = new DoorService(tickets, false);
+    const door = new DoorService(tickets, new SampleOrderRepository(db), false);
     expect(door.samplePreview()).toBeNull();
     const result = await door.scan('anything', 'sunset-social', { ...db.viewerState, demo: false, doorStaff: true });
     expect(result.outcome).toBe('refunded');
     expect(db.checkins).toHaveLength(0);
+    const reviews = await new DoorService(new SampleTicketRepository(db), new SampleOrderRepository(db), true).reviews(db.viewerState);
+    expect(reviews[0]).toMatchObject({ id: 'sample-review-order', status: 'review', reviewNote: 'capacity', sample: true });
+    const hidden = await new DoorService(tickets, new SampleOrderRepository(db), false).reviews({
+      ...db.viewerState,
+      demo: false,
+      doorStaff: false,
+    });
+    expect(hidden).toEqual([]);
   });
 });
 

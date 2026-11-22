@@ -175,6 +175,26 @@ export class SupabaseOrderRepository implements OrderPort {
       tickets: mapped,
     };
   }
+
+  async listInReview() {
+    const orders = unwrapList(
+      await table(this.client, 'orders')
+        .select('id, event_id, status, review_note, created_at')
+        .eq('status', 'review')
+        .order('created_at', { ascending: false }),
+    );
+    const events = unwrapList(await table(this.client, 'events').select('id, name'));
+    const names = new Map(events.map((row) => [String(row.id), String(row.name ?? row.id)]));
+    return orders.map((row) => ({
+      id: String(row.id),
+      eventId: String(row.event_id),
+      eventName: names.get(String(row.event_id)) ?? String(row.event_id),
+      status: 'review' as const,
+      reviewNote: row.review_note == null ? '' : String(row.review_note),
+      createdAt: String(row.created_at ?? ''),
+      sample: false,
+    }));
+  }
 }
 
 export class SupabasePaymentGateway implements PaymentGateway {

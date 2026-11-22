@@ -165,9 +165,9 @@ export const stackScreen = {
   eventSoft: { animation: 'fade' as const, animationDuration: dur.screen },
   /** Checkout: native sheet / modal. */
   checkout: { presentation: 'modal' as const, animation: 'slide_from_bottom' as const },
-  /** Golden-ticket reveal: overlay above checkout, fade only (the component does the choreography). */
+  /** Golden-ticket reveal replaces checkout. Opaque card, fade only. */
   ticketReveal: {
-    presentation: 'transparentModal' as const,
+    presentation: 'card' as const,
     animation: 'fade' as const,
     animationDuration: dur.short,
     gestureEnabled: false,

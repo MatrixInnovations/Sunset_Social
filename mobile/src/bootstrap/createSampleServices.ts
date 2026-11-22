@@ -40,15 +40,16 @@ export function createSampleServices(
 ): AppServices {
   const events = new SampleEventRepository(db);
   const tickets = new SampleTicketRepository(db);
+  const orders = new SampleOrderRepository(db);
   const guests = new SampleGuestRepository(db);
   const guestService = new GuestService(guests, tickets);
   return {
     mode: 'demo',
     events: new EventService(events),
     tickets: new TicketService(tickets),
-    checkout: new CheckoutService(events, new SampleOrderRepository(db), new DemoPaymentGateway(), new IdlePresenter(), 'demo', null),
+    checkout: new CheckoutService(events, orders, new DemoPaymentGateway(), new IdlePresenter(), 'demo', null),
     guests: guestService,
-    door: new DoorService(tickets, true),
+    door: new DoorService(tickets, orders, true),
     auth: new AuthService(new DemoAuthGateway(), 'demo'),
     notifications: new NotificationService(options?.notifications ? 'live' : 'demo', options?.notifications ?? { async register() { return 'stub'; } }),
     later: new LaterRelease(),

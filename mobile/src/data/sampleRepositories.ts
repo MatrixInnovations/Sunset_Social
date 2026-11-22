@@ -115,6 +115,20 @@ export class SampleOrderRepository implements OrderPort {
     const found = this.db.orders.find((order) => order.paymentRef === paymentRef);
     return found ? cloneOrder(found) : null;
   }
+
+  async listInReview() {
+    return [
+      {
+        id: 'sample-review-order',
+        eventId: 'sunset-social',
+        eventName: 'Sunset Social',
+        status: 'review' as const,
+        reviewNote: 'capacity',
+        createdAt: '2026-11-22T03:00:00.000Z',
+        sample: true,
+      },
+    ];
+  }
 }
 
 export class SampleGuestRepository implements GuestPort {

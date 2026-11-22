@@ -83,7 +83,7 @@ export default function RootLayout() {
                   <Stack.Screen name="checkout/[id]" options={stackScreen.checkout} />
                   <Stack.Screen
                     name="ticket-reveal"
-                    options={{ ...stackScreen.ticketReveal, contentStyle: { backgroundColor: 'transparent' } }}
+                    options={{ ...stackScreen.ticketReveal, contentStyle: { backgroundColor: colors.ink } }}
                   />
                 </Stack>
               </View>

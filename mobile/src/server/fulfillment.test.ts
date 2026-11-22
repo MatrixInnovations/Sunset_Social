@@ -151,6 +151,7 @@ describe('checkout attempts', () => {
         return { id: input.paymentRef, paymentRef: input.paymentRef, tickets: [] } as unknown as PlacedOrder;
       }),
       waitForPayment: jest.fn(),
+      listInReview: jest.fn(async () => []),
     };
     const payments: PaymentGateway = { createIntent: jest.fn() };
     const presenter: PaymentPresenter = { present: jest.fn() };

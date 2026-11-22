@@ -13,7 +13,7 @@ import type { ScanResult } from '@/domain/types';
 import { useSessionStore } from '@/store/session';
 import { colors, fonts } from '@/theme/tokens';
 
-const modes = ['Scan', 'Guest list', 'Approve', 'Manual'] as const;
+const modes = ['Scan', 'Guest list', 'Review', 'Approve', 'Manual'] as const;
 
 export function DoorScreen() {
   const services = useServices();
@@ -31,6 +31,11 @@ export function DoorScreen() {
     queryKey: ['door-guests', query],
     queryFn: () => services.door.search('sunset-social', query),
     enabled: mode === 'Guest list',
+  });
+  const reviews = useQuery({
+    queryKey: ['door-reviews'],
+    queryFn: () => services.door.reviews(viewer),
+    enabled: mode === 'Review',
   });
   const preview = lastDoor ?? services.door.samplePreview();
   const scan = useMutation({
@@ -98,6 +103,23 @@ export function DoorScreen() {
                     {guest.tierName} · {formatTicketCode(guest.code)} · {guest.status}
                   </Text>
                 </View>
+              </View>
+            ))}
+          </ScrollView>
+        ) : null}
+
+        {mode === 'Review' ? (
+          <ScrollView style={styles.panel}>
+            <Text style={styles.panelTitle}>Needs review</Text>
+            {reviews.data?.length ? null : <Text style={styles.guestMeta}>No orders need review.</Text>}
+            {reviews.data?.map((order) => (
+              <View key={order.id} testID="review-order" style={styles.guestRow}>
+                {order.sample ? <Pill label="SAMPLE" tone="gold" /> : null}
+                <Text style={styles.guestName}>{order.id}</Text>
+                <Text style={styles.guestMeta}>{order.eventName}</Text>
+                <Text style={styles.guestMeta}>{order.status}</Text>
+                <Text style={styles.guestMeta}>{order.reviewNote || 'No note'}</Text>
+                <Text style={styles.guestMeta}>{order.createdAt.replace('T', ' ').slice(0, 16)}</Text>
               </View>
             ))}
           </ScrollView>

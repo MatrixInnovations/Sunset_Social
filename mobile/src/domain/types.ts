@@ -190,6 +190,16 @@ export type DoorCounts = {
   sample: boolean;
 };
 
+export type ReviewOrder = {
+  id: string;
+  eventId: string;
+  eventName: string;
+  status: 'review';
+  reviewNote: string;
+  createdAt: string;
+  sample: boolean;
+};
+
 export type DoorGuest = {
   id: string;
   name: string;

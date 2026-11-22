@@ -59,7 +59,7 @@ export function CheckoutScreen() {
       const ticket = order.tickets[0];
       if (ticket) {
         useSessionStore.getState().setConfirmedTicket(ticket);
-        router.push('/ticket-reveal');
+        router.replace('/ticket-reveal');
         return;
       }
       router.replace('/tickets');

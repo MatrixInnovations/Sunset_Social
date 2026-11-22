@@ -5,6 +5,7 @@ jest.mock('expo-router', () => {
   const React = require('react');
   return {
     useRouter: () => require('./routerMock').router,
+    useNavigation: () => require('./routerMock').navigation,
     useLocalSearchParams: () => require('./routerMock').params,
     useFocusEffect: (effect: () => void | (() => void)) => {
       React.useEffect(() => effect(), [effect]);

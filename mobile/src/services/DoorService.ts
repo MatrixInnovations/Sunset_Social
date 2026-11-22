@@ -1,13 +1,21 @@
 import { parseTicketCode } from '@/domain/format';
-import type { DoorCounts, DoorGuest, ScanOutcome, ScanResult, TicketRecord, Viewer } from '@/domain/types';
+import type { DoorCounts, DoorGuest, ReviewOrder, ScanOutcome, ScanResult, TicketRecord, Viewer } from '@/domain/types';
 import { DoorError } from '@/services/errors';
-import type { TicketPort } from '@/services/ports';
+import type { OrderPort, TicketPort } from '@/services/ports';
 
 export class DoorService {
   constructor(
     private readonly tickets: TicketPort,
+    private readonly orders: OrderPort,
     private readonly demo: boolean,
   ) {}
+
+  async reviews(staff: Viewer): Promise<ReviewOrder[]> {
+    if (!staff.doorStaff && !staff.demo) {
+      return [];
+    }
+    return this.orders.listInReview();
+  }
 
   samplePreview(): ScanResult | null {
     if (!this.demo) {
