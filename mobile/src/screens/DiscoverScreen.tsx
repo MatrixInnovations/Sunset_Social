@@ -51,7 +51,7 @@ export function DiscoverScreen() {
 
         <Animated.View entering={blockIn(0, reduceMotion)}>
           <Text style={styles.greeting}>{copy.greeting}</Text>
-          <Text style={styles.greetingSub}>{copy.greetingSub}</Text>
+          <Text style={styles.greetingSub}>{renderPenthouse(copy.greetingSub)}</Text>
         </Animated.View>
 
         {sunset ? (
@@ -72,7 +72,7 @@ export function DiscoverScreen() {
               <Pill label={sampleLabels.guests} tone="gold" />
             </View>
             <View style={styles.heroBody}>
-              <Text style={styles.series}>EVENT I · ROOFTOP SOCIAL</Text>
+              <Text style={styles.series}>EVENT I · LUXURY PENTHOUSE</Text>
               <Text style={styles.heroTitle}>
                 Sunset <Text style={styles.italic}>Social</Text>
               </Text>
@@ -130,6 +130,18 @@ export function DiscoverScreen() {
   );
 }
 
+function renderPenthouse(line: string) {
+  return line.split(/(penthouse)/i).map((part, index) =>
+    part.toLowerCase() === 'penthouse' ? (
+      <Text key={`${part}-${index}`} style={styles.penthouse}>
+        {part}
+      </Text>
+    ) : (
+      part
+    ),
+  );
+}
+
 function EveningCard({ event, onPress }: { event: SocialEvent; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} style={styles.card}>
@@ -184,20 +196,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   greeting: {
-    marginTop: 18,
+    marginTop: 22,
     paddingHorizontal: 18,
     color: colors.ivory,
-    fontFamily: fonts.serif,
-    fontSize: 36,
-    lineHeight: 38,
+    fontFamily: fonts.serifSemi,
+    fontSize: 52,
+    lineHeight: 54,
   },
   greetingSub: {
     paddingHorizontal: 18,
-    color: colors.goldBright,
+    color: colors.ivoryDim,
     fontFamily: fonts.serifItalic,
-    fontSize: 26,
-    lineHeight: 30,
-    marginBottom: 14,
+    fontSize: 22,
+    lineHeight: 28,
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  penthouse: {
+    color: colors.gold,
+    fontFamily: fonts.serifSemiItalic,
   },
   hero: { marginHorizontal: 16, borderRadius: 26, overflow: 'hidden' },
   heroTop: { flexDirection: 'row', justifyContent: 'space-between', padding: 12 },

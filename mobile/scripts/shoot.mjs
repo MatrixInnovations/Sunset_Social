@@ -50,7 +50,7 @@ const server = http.createServer((req, res) => {
 await new Promise((resolve) => server.listen(4173, '127.0.0.1', resolve));
 
 const shots = [
-  { route: '/', file: '01-discover', text: 'Good evening' },
+  { route: '/', file: '01-discover', text: "You're invited" },
   { route: '/event/sunset-social', file: '02-event', text: 'RESERVE YOUR PLACE' },
   { route: '/checkout/sunset-social', file: '03-checkout', text: 'SAMPLE ORDER' },
   { route: '/tickets', file: '04-wallet', text: 'Golden' },

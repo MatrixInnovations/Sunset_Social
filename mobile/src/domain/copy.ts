@@ -21,9 +21,9 @@ export const copy = {
   revealLater: 'The address is shared with ticket holders closer to the evening.',
   about:
     'A premium recurring penthouse social experience. Two evenings, one golden hour. Launching January 2027; the first evening is Saturday, January 23, 2027.',
-  eventTagline: 'A premium recurring penthouse social experience at golden hour.',
-  greeting: 'Good evening.',
-  greetingSub: 'The light is turning gold.',
+  eventTagline: 'A luxury penthouse evening at golden hour.',
+  greeting: "You're invited.",
+  greetingSub: 'A luxury penthouse evening at Sunset Social.',
   hostName: 'Andrew Lowery',
   hostLine: 'Sunset Social · The Tasting Room',
   twoEvenings: 'Two evenings, one golden hour',

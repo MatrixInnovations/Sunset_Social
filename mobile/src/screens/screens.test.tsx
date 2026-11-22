@@ -23,8 +23,8 @@ import { emitBack, params, router } from '../../test/routerMock';
 describe('MVP screens', () => {
   it('renders Discover with both evenings and the sample label', async () => {
     const view = await renderScreen(<DiscoverScreen />);
-    expect(await view.findByText('Good evening.')).toBeTruthy();
-    expect(view.getByText('The light is turning gold.')).toBeTruthy();
+    expect(await view.findByText("You're invited.")).toBeTruthy();
+    expect(view.getByText('A luxury penthouse evening at Sunset Social.')).toBeTruthy();
     expect(view.getByText('The Tasting Room')).toBeTruthy();
     expect(view.getByText('Jan 2027 · 21+')).toBeTruthy();
     expect(view.getByText('Sat, Jan 23, 2027 · Time TBA · Venue to be announced')).toBeTruthy();

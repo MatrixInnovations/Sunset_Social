@@ -54,7 +54,7 @@ export class SampleDatabase {
       {
         id: IDS.sunset,
         edition: '01',
-        seriesLabel: 'EVENT I · ROOFTOP SOCIAL',
+        seriesLabel: 'EVENT I · LUXURY PENTHOUSE',
         editionLabel: 'EDITION NO. 01',
         name: 'Sunset Social',
         italicTail: 'Social',
